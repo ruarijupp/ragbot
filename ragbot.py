@@ -1,60 +1,47 @@
 import os
-import numpy as np
+from dotenv import load_dotenv
+from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from openai import OpenAI
-from dotenv import load_dotenv
-from tqdm import tqdm
 
+# Load API key
 load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 1. Load Documents
-def load_documents():
-    folder = "data"
-    if not os.path.exists(folder) or not os.listdir(folder):
-        print("⚠️ No documents found. Loading fallback content.")
-        return ["Addiction is a chronic condition that can be treated with support, structure, and healthy routines."]
-    
-    documents = []
-    for filename in os.listdir(folder):
-        with open(os.path.join(folder, filename), "r") as f:
-            documents.append(f.read())
-    return documents
+# === GLOBAL TF-IDF VECTORIZER ===
+vectorizer = TfidfVectorizer()
 
-# 2. Embed Documents (TF-IDF)
-def embed_documents(documents):
-    vectorizer = TfidfVectorizer()
-    embeddings = vectorizer.fit_transform(tqdm(documents, desc="Embedding"))
-    return embeddings
+# === LOAD DOCUMENTS ===
+def load_documents(folder="docs"):
+    docs = []
+    for file in Path(folder).glob("*.txt"):
+        with open(file, "r", encoding="utf-8") as f:
+            content = f.read()
+            docs.append({"text": content, "source": file.name})
+    return docs
 
-# 3. Build Index (returns FAISS-like format)
-def build_index(embeddings):
-    vectors = embeddings.toarray()
-    dim = len(vectors[0])
-    return {"vectors": vectors, "dim": dim}
+# === EMBED WITH TF-IDF ===
+def embed_documents(docs):
+    texts = [doc["text"] for doc in docs]
+    vectors = vectorizer.fit_transform(texts).toarray()
+    for i, doc in enumerate(docs):
+        doc["vector"] = vectors[i]
+    return docs
 
-# 4. Query Index
-def query_index(index, documents, question):
-    question_vector = TfidfVectorizer().fit(documents + [question]).transform([question]).toarray()[0]
-    similarities = cosine_similarity([question_vector], index["vectors"])[0]
-    top_indices = np.argsort(similarities)[::-1][:3]
-    return [documents[i] for i in top_indices]
+# === QUERY SIMILARITY ===
+def query_index(docs, query, k=3):
+    question_vector = vectorizer.transform([query]).toarray()
+    similarities = cosine_similarity(question_vector, [doc["vector"] for doc in docs])[0]
+    top_indices = similarities.argsort()[-k:][::-1]
+    return [docs[i] for i in top_indices]
 
-# 5. Ask GPT with Retrieved Docs
+# === GPT ANSWER ===
 def ask_gpt(question, context_chunks):
-    context = "\n\n".join(context_chunks)
-    prompt = f"""You are a recovery chatbot. Use the information below to answer the user's question in a compassionate, supportive tone.
-
-Context:
-{context}
-
-User: {question}
-Bot:"""
-
-    client = OpenAI(api_key=openai_api_key)
+    context = "\n\n".join(chunk["text"][:1000] for chunk in context_chunks)
+    prompt = f"Answer the question below using only the context provided.\n\nContext:\n{context}\n\nQuestion: {question}\n\nAnswer:"
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content.strip()
