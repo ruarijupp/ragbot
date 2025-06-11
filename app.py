@@ -18,14 +18,37 @@ HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>RAGBot Recovery Chat</title>
+    <title>Umatilla Recovery Assistant</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
             background: #f9fbfc;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #2C3E50;
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+        header img {
+            height: 60px;
+            margin-bottom: 10px;
+        }
+        nav {
+            margin-top: 10px;
+        }
+        nav a {
+            margin: 0 15px;
+            color: #ecf0f1;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .container {
             display: flex;
             justify-content: center;
-            padding-top: 80px;
+            padding: 40px 20px 20px;
         }
         .box {
             background: #ffffff;
@@ -69,21 +92,48 @@ HTML = """
             border-radius: 8px;
             white-space: pre-wrap;
         }
+        .thought {
+            margin: 50px auto 30px;
+            text-align: center;
+            font-style: italic;
+            color: #2c3e50;
+            font-size: 18px;
+            max-width: 700px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h1>RAGBot Recovery Chat</h1>
-        <form method="POST">
-            <label for="question">Ask a question related to addiction recovery:</label>
-            <input type="text" name="question" placeholder="e.g. How do I manage cravings?" required>
-            <button type="submit">Ask</button>
-        </form>
-        {% if answer %}
-        <div class="response">
-            <strong>Answer:</strong><br>{{ answer }}
+    <header>
+        <img src="/static/ucha-logo.png" alt="UCHA Logo" />
+        <h2>Umatilla Recovery Assistant</h2>
+        <nav>
+            <a href="#">Home</a>
+            <a href="#">Thought of the Week</a>
+            <a href="#">Resources</a>
+            <a href="#">About</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="box">
+            <h1>RAGBot Recovery Chat</h1>
+            <form method="POST">
+                <label for="question">Ask a question related to addiction recovery:</label>
+                <input type="text" name="question" placeholder="e.g. How do I manage cravings?" required>
+                <button type="submit">Ask</button>
+            </form>
+            {% if answer %}
+            <div class="response">
+                <strong>Answer:</strong><br>{{ answer }}
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
+    </div>
+
+    <div class="thought">
+        <p>🧠 <strong>Thought of the Week:</strong><br>
+        “Just for today, I will try to live through this day only, and not tackle all my problems at once.”</p>
     </div>
 </body>
 </html>
@@ -105,6 +155,5 @@ def chat():
             answer = f"⚠️ An error occurred: {str(e)}"
     return render_template_string(HTML, answer=answer)
 
-# Let gunicorn run this in production
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
