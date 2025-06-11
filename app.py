@@ -18,7 +18,7 @@ HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Umatilla Recovery Assistant</title>
+    <title>Umatilla County Housing Authority</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -28,16 +28,22 @@ HTML = """
         }
         header {
             background-color: #2C3E50;
-            padding: 20px;
+            padding: 20px 40px;
             color: white;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        header img {
-            height: 60px;
-            margin-bottom: 10px;
+        .header-left {
+            display: flex;
+            align-items: center;
         }
-        nav {
-            margin-top: 10px;
+        .header-left img {
+            height: 120px;
+            margin-right: 20px;
+        }
+        .header-left h2 {
+            margin: 0;
         }
         nav a {
             margin: 0 15px;
@@ -105,8 +111,10 @@ HTML = """
 </head>
 <body>
     <header>
-        <img src="/static/ucha-logo.png" alt="UCHA Logo" />
-        <h2>Umatilla Recovery Assistant</h2>
+        <div class="header-left">
+            <img src="/static/ucha-logo.png" alt="UCHA Logo" />
+            <h2>Umatilla County Housing Authority</h2>
+        </div>
         <nav>
             <a href="#">Home</a>
             <a href="#">Thought of the Week</a>
@@ -117,7 +125,7 @@ HTML = """
 
     <div class="container">
         <div class="box">
-            <h1>RAGBot Recovery Chat</h1>
+            <h1>Recovery Assistant</h1>
             <form method="POST">
                 <label for="question">Ask a question related to addiction recovery:</label>
                 <input type="text" name="question" placeholder="e.g. How do I manage cravings?" required>
@@ -125,7 +133,8 @@ HTML = """
             </form>
             {% if answer %}
             <div class="response">
-                <strong>Answer:</strong><br>{{ answer }}
+                <p><strong>Your Question:</strong><br>{{ request.form["question"] }}</p>
+                <p><strong>Answer:</strong><br>{{ answer }}</p>
             </div>
             {% endif %}
         </div>
