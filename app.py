@@ -1,12 +1,18 @@
+import os
 from flask import Flask, request, render_template_string
 from ragbot import load_documents, embed_documents, query_index, ask_gpt
-import os
-
-# === Load once ===
-docs = load_documents()
-docs = embed_documents(docs)
 
 app = Flask(__name__)
+
+# === Lazy load and embed only once ===
+docs = []
+
+def get_docs():
+    global docs
+    if not docs:
+        raw = load_documents()
+        docs = embed_documents(raw)
+    return docs
 
 HTML = """
 <!DOCTYPE html>
@@ -89,11 +95,13 @@ def chat():
     if request.method == "POST":
         question = request.form["question"]
         try:
-            chunks = query_index(docs, question)
+            chunks = query_index(get_docs(), question)
             answer = ask_gpt(question, chunks)
         except Exception as e:
             answer = f"⚠️ An error occurred: {str(e)}"
     return render_template_string(HTML, answer=answer)
 
+# Don't run manually — let gunicorn serve the app
+# For local dev, this still works
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
