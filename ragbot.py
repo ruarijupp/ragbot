@@ -5,14 +5,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from openai import OpenAI
 
-# Load OpenAI key
+# === Load environment and OpenAI client ===
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# TF-IDF vectorizer
+# === Global TF-IDF vectorizer ===
 vectorizer = TfidfVectorizer()
 
-# === Load recovery documents ===
+# === Load documents from /docs folder ===
 def load_documents(folder="docs"):
     docs = []
     for file in Path(folder).glob("*.txt"):
@@ -21,7 +21,7 @@ def load_documents(folder="docs"):
             docs.append({"text": content, "source": file.name})
     return docs
 
-# === Embed with TF-IDF ===
+# === Embed documents using TF-IDF ===
 def embed_documents(docs):
     texts = [doc["text"] for doc in docs]
     vectors = vectorizer.fit_transform(texts).toarray()
@@ -29,7 +29,7 @@ def embed_documents(docs):
         doc["vector"] = vectors[i]
     return docs
 
-# === Return top K docs + top match score ===
+# === Query docs and return top matches + top score ===
 def query_index(docs, query, k=3):
     question_vector = vectorizer.transform([query]).toarray()
     similarities = cosine_similarity(question_vector, [doc["vector"] for doc in docs])[0]
@@ -38,7 +38,7 @@ def query_index(docs, query, k=3):
     top_score = similarities[top_indices[0]] if top_indices.size > 0 else 0
     return top_docs, top_score
 
-# === Ask GPT using only context from RAG ===
+# === Ask GPT using retrieved context chunks ===
 def ask_gpt(question, context_chunks):
     context = "\n\n".join(chunk["text"][:1000] for chunk in context_chunks)
     prompt = f"Answer the question below using only the context provided.\n\nContext:\n{context}\n\nQuestion: {question}\n\nAnswer:"
@@ -55,7 +55,7 @@ def ask_gpt(question, context_chunks):
     )
     return response.choices[0].message.content.strip()
 
-# === General GPT fallback when docs don't match ===
+# === Fallback if no doc is a good match ===
 def ask_general_gpt(question):
     print("\n=== GPT Prompt (General mode) ===\n")
     print(question)
